@@ -1,0 +1,246 @@
+.ews-dialog .ui-dialog-title {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.ui-dialog-titlebar-close {
+    background-image: url(close.png); /* 16px x 16px */
+    background-color: transparent; /* make the button transparent */
+    background-repeat: no-repeat;  /* make the background image appear only once */
+    background-position: 0px 0px;  /* equivalent to 'top left' */
+    border: none;           /* assuming we don't want any borders */
+    cursor: pointer;        /* make the cursor like hovering over an <a> element */
+    height: 16px;           /* make this the size of your image */
+    vertical-align: middle; /* align the text vertically centered */
+}
+
+.ui-dialog-titlebar-close:focus {
+    outline: none !important;
+}
+
+.ui-widget-overlay {
+    background-color: black;
+    opacity: 0.3
+}
+
+.ewsNavButtonGroup,
+.profileNavButtonGroup,
+.ewsProfileHistoryButtonGroup {
+    text-align: center;
+    margin-bottom: 7px;
+    width: 100%;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-wrap: nowrap;
+    flex-wrap: nowrap;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+}
+
+.ewsProfileHistoryButtonGroup {
+    width: 370px;
+}
+
+.ewsNavButtonGroup div,
+.profileNavButtonGroup div,
+.ewsProfileHistoryButtonGroup div {
+    margin-left: 7px;
+    box-sizing: border-box;
+    -webkit-box-flex: 1;
+    -ms-flex-positive: 1;
+    flex-grow: 1;
+}
+
+.ewsNavButtonGroup div:first-child {
+    margin-left: 0;
+}
+
+.ewsNavButton,
+.profileNavButton,
+.ewsProfileHistoryButton {
+    cursor: pointer;
+    border: 1px solid rgba(60,60,60,.83);
+    padding: 7px;
+    border-radius: 2px;
+    font-size: 13px;
+    color: #e4e1e1;
+    letter-spacing: .5px;
+    font-weight: 400;
+    background-color: transparent;
+    outline: none;
+    box-shadow: none;
+    transition: background-color .1s ease-in-out,border-color .1s ease-in-out,color .1s ease-in-out;
+    width: 100%;
+}
+
+.ewsNavButton:hover,
+.profileNavButton:hover,
+.ewsProfileHistoryButton:hover {
+    background-color:hsla(0,0%,100%,.11);
+}
+
+.ewsNavButton:active,
+.profileNavButton:active,
+.ewsProfileHistoryButton:active {
+    background-color:hsla(0,0%,100%,.07);
+}
+
+.ewsNavButton.selected,
+.profileNavButton.selected,
+.ewsProfileHistoryButton.selected {
+    background-color: rgba(54,121,165,.8);
+}
+
+
+.ews-dialog {
+  background: rgba(27,27,27,1);
+  border: 1px solid #0cf;
+  border-radius: 6px;
+  z-index: 1700;
+  font-size: 10pt;
+  color: #eee;
+}
+
+.ews-dialog a.ews-close-window {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  z-index: 100
+}
+
+.ews-dialog .ewsPanelHeader {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 10px;
+  height: 30px;
+  overflow: hidden
+}
+
+.ews-dialog .ewsPanelContent {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50px;
+  padding: 10px;
+  overflow: auto;
+  border-top: 1px solid #333
+}
+
+.ews-dialog button {
+  font-size: 10pt;
+  padding: 2px 6px
+}
+
+#ewsSCHistory {
+  overflow-y: auto;
+  max-height: 800px;
+}
+
+#ewsSCHistoryWrapper th {
+  text-align: left;
+  padding-right: 10px;
+}
+
+#ewsSCHistoryWrapper tr:hover {
+  background-color: #333;
+}
+
+#ewsSCHistoryWrapper tr td:nth-child(1) { /* # of SCs */
+  text-align: right;
+  padding-right: 10px;
+  width: 70px;
+}
+
+#ewsSCHistoryWrapper tr td:nth-child(2) { /* cell name */
+  padding-right: 15px;
+  cursor: pointer;
+  min-width: 210px;
+}
+
+#ewsSCHistoryWrapper tr td:nth-child(3) { /* Cell ID */
+  text-align: right;
+  padding-right: 10px;
+  width: 60px;
+}
+
+#ewsSCHistoryWrapper tr td:nth-child(4) { /* timestamp */
+  width: 170px;
+}
+
+#ewsSCHistoryWrapper tr td:nth-child(6) { /* sc-info results */
+  text-align: right;
+  width: 150px;
+}
+
+#ewsSCHHistoryWrapper tr td:nth-child(7) { /* status */
+  width: 80px;
+}
+
+#ewsSCHistoryWrapper button {
+  margin-right: 10px;
+}
+
+.SCHistory-50 {
+  color: yellow;
+}
+
+.SCHistory-100 {
+  color: #00FF00;
+}
+
+#sc-history-popup {
+  width: 305px;
+  height: 55px;
+  color: #e4e1e1;
+  background-color: rgba(27, 27, 27, 1);
+  border: 1px solid #565656;
+  font-size: 10pt;
+  position: absolute;
+  display: none;
+  z-index: 1701;
+}
+
+#sc-history-popup span {
+  cursor: pointer;
+  display: inline-block;
+  padding: 5px 10px;
+  width: 285px;
+}
+
+#sc-history-popup span:hover {
+  background-color: #333;
+}
+
+hr {
+  border-color: #555;
+}
+
+.sc-history-top-menu {
+  display: inline-block;
+}
+
+#sc-history-top-menu-input-wrapper {
+  display: inline-block;
+  float: right;
+}
+
+#sc-history-top-menu-input-wrapper input {
+  width: 50px;
+}
+
+#ews-sc-history-period-selection,
+#ews-sc-history-dataset-selection {
+    display: inline-block;
+    width: 50%;
+    float: left;
+}
+
+#ews-sc-history-period-selection .ewsNavButton,
+#ews-sc-history-dataset-selection .ewsNavButton {
+    display: inline-block;
+    width: auto;
+}
