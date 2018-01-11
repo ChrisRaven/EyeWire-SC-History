@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1
+// @version      1.0.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -13,7 +13,7 @@
 /*globals $, account, tomni, Cell */
 
 
-const LOCAL = false;
+var LOCAL = false;
 if (LOCAL) {
   console.log('%c--== TURN OFF "LOCAL" BEFORE RELEASING!!! ==--', "color: red; font-style: italic; font-weight: bold;");
 }
