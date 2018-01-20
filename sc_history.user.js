@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
+// @version      1.0.2
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -323,29 +323,28 @@ function SCHistory() {
     K.gid('ewsSCHistory').style.maxHeight = window.innerHeight - 100 + 'px';
   });
   
-  doc.on('votes-updated', function (event, data) {
+  doc.on('websocket-task-completions', function (event, data) {
+    if (data.uid !== account.account.uid) {
+      // someone else SCed a cube; no need to update our votes
+      return;
+    }
+
     var
       _data = data,
-      host = window.location.hostname,
-      targetUrl = 'https://';
+      host = window.location.hostname;
 
-    if (host.indexOf('beta') !== -1) {
-      targetUrl += 'beta.';
-    }
-    else if (host.indexOf('chris') !== -1) {
-      targetUrl += 'chris.';
-    }
-    targetUrl += 'eyewire.org/1.0/cell/' + data.cellId + '/tasks/complete/player';
+    let targetUrl = '/1.0/cell/' + data.cell + '/tasks/complete/player';
 
     $.getJSON(targetUrl, function (JSONData) {
-      var
-        uid = account.account.uid;
+      let uid = account.account.uid;
 
       if (!JSONData) {
         return;
       }
 
-      _this.updateCount(JSONData.scythe[uid].length, _data.cellId, _data.cellName, Date.now(), _data.datasetId);
+      let currentCell = tomni.getCurrentCell();
+
+      _this.updateCount(JSONData.scythe[uid].length, _data.cell, currentCell.info.name, Date.now(), currentCell.info.dataset_id);
     });
   });
   
@@ -468,7 +467,7 @@ function SCHistory() {
       if (cells.hasOwnProperty(cellId)) {
         cell = cells[cellId];
         if ((!cell.status || cell.status !== 'Completed') && (cell.datasetId == type || type === 'both')) {
-          $.getJSON('https://eyewire.org/1.0/cell/' + cellId, function (data) {
+          $.getJSON('/1.0/cell/' + cellId, function (data) {
             if (data && data.completed !== null) {
               cell.status = 'Completed';
               // read and write to localStorage in each iteration, because otherwise
@@ -562,23 +561,6 @@ if (LOCAL) {
 else {
   K.addCSSFile('https://chrisraven.github.io/EyeWire-SC-History/styles.css');
 }
-
-
-K.injectJS(`
-  (function (open) {
-    XMLHttpRequest.prototype.open = function (method, url, async, user, pass) {
-      this.addEventListener("readystatechange", function (evt) {
-        if (this.readyState == 4 && this.status == 200 &&
-            url.indexOf('/1.0/task/') !== -1 &&
-            url.indexOf('/submit') === -1 &&
-            method.toLowerCase() === 'post') {
-          $(document).trigger('votes-updated', {cellId: tomni.cell, cellName: tomni.getCurrentCell().info.name, datasetId: tomni.getCurrentCell().info.dataset_id});
-        }
-      }, false);
-      open.call(this, method, url, async, user, pass);
-    };
-  }) (XMLHttpRequest.prototype.open);
-`);
 
 
 // source: https://stackoverflow.com/a/14488776
