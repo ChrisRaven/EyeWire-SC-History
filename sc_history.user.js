@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.0.2
+// @version      1.0.3
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -323,17 +323,38 @@ function SCHistory() {
     K.gid('ewsSCHistory').style.maxHeight = window.innerHeight - 100 + 'px';
   });
   
+   
+  if (!K.ls.get('sc-history-update-2018-01-30')) {
+    K.ls.set('sc-history-update-2018-01-30', true);
+    let scHistory = K.ls.get('sc-history');
+    if (scHistory) {
+      scHistory = JSON.parse(scHistory);
+      for (let cellId in scHistory) {
+        /*jshint loopfunc: true */
+        if (scHistory.hasOwnProperty(cellId)) {
+          $.getJSON('/1.0/cell/' + cellId, function (data) {
+            if (data) {
+              let his = JSON.parse(K.ls.get('sc-history'));
+              his[cellId].name = data.name;
+              K.ls.set('sc-history', JSON.stringify(his));
+            }
+          });
+        }
+      }
+    }
+  }
+
+  
   doc.on('websocket-task-completions', function (event, data) {
     if (data.uid !== account.account.uid) {
       // someone else SCed a cube; no need to update our votes
       return;
     }
 
-    var
-      _data = data,
-      host = window.location.hostname;
-
+    let _data = data;
+    let host = window.location.hostname;
     let targetUrl = '/1.0/cell/' + data.cell + '/tasks/complete/player';
+    let currentCell = tomni.getCurrentCell();
 
     $.getJSON(targetUrl, function (JSONData) {
       let uid = account.account.uid;
@@ -341,8 +362,6 @@ function SCHistory() {
       if (!JSONData) {
         return;
       }
-
-      let currentCell = tomni.getCurrentCell();
 
       _this.updateCount(JSONData.scythe[uid].length, _data.cell, currentCell.info.name, Date.now(), currentCell.info.dataset_id);
     });
