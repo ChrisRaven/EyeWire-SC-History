@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.0.4
+// @version      1.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -59,7 +59,8 @@ if (LOCAL) {
       tgt = document.getElementsByTagName('head')[0] || document.body || document.documentElement;
       tgt.appendChild(scriptNode);
     },
-    
+
+
     // localStorage
     ls: {
       get: function (key) {
@@ -108,52 +109,131 @@ function SCHistory() {
       });
     }
   });
+  
+    
+  this.getHistory = function () {
+    let history = K.ls.get('sc-history');
 
-  this.updateCount = function (count, cellId, cellName, timestamp, datasetId) {
-    var
-      lsHistory = K.ls.get('sc-history');
-
-    if (lsHistory && lsHistory !== '{}') {
-      lsHistory = JSON.parse(lsHistory);
+    if (history && history !== '{}') {
+      history = JSON.parse(history);
     }
     else {
-      lsHistory = {};
+      history = {};
     }
-
-    lsHistory[cellId] = {count: count, ts: timestamp, name: cellName, datasetId: datasetId};
-
-    K.ls.set('sc-history', JSON.stringify(lsHistory));
+    
+    return history;
   };
+  
+  this.setHistory = function (history) {
+    K.ls.set('sc-history', JSON.stringify(history));
+  };
+
 
   this.removeOldEntries = function () {
     var
       cellId,
       now = Date.now(),
       thirtyDays = 1000 * 60 * 60 * 24 * 30,
-      lsHistory = K.ls.get('sc-history');
+      history = this.getHistory();
 
-    if (lsHistory && lsHistory !== '{}') {
-      lsHistory = JSON.parse(lsHistory);
-      for (cellId in lsHistory) {
-        if (lsHistory.hasOwnProperty(cellId)) {
-          if (now - lsHistory[cellId].ts > thirtyDays) {
-            delete lsHistory[cellId];
-          }
+    for (cellId in history) {
+      if (history.hasOwnProperty(cellId)) {
+        if (now - history[cellId].ts > thirtyDays) {
+          delete history[cellId];
         }
       }
-      K.ls.set('sc-history', JSON.stringify(lsHistory));
     }
+
+    this.setHistory(history);
   };
   
   this.removeEntry = function (cellId) {
-    var
-      lsHistory = K.ls.get('sc-history');
+    let history = this.getHistory();
+    delete history[cellId];
+    this.setHistory(history);
+  };
+  
+  this.addOrUpdateEntry = function () {
+    let history = this.getHistory();
+    let cell = tomni.getCurrentCell();
     
-    if (lsHistory && lsHistory !== '{}') {
-      lsHistory = JSON.parse(lsHistory);
-      delete lsHistory[cellId];
-      K.ls.set('sc-history', JSON.stringify(lsHistory));
+    if (!history[cell.info.cell]) {
+      history[cell.info.cell] = {
+        count: 0,
+        ts: Date.now(),
+        name: cell.info.name,
+        datasetId: cell.info.dataset_id
+      };
     }
+    else {
+      history[cell.info.cell].ts = Date.now();
+      history[cell.info.cell].name = cell.info.name; // in case, the name of the cell was changed (e.g. by splitting)
+    }
+
+    this.setHistory(history);    
+  };
+  
+  this.updateCompleteStatus = function (cellId) {
+    let statusCell = K.gid('sc-history-cell-' + cellId).getElementsByClassName('sc-history-complete-status')[0];
+    statusCell.style.backgroundColor = '#333';
+
+    $.getJSON('/1.0/cell/' + cellId, function (data) {
+      if (data && data.completed !== null) {
+        // read and write to localStorage in each iteration, because otherwise
+        // only the last would be saved
+        let history = _this.getHistory();
+        history[cellId].status = 'Completed';
+        _this.setHistory(history);
+
+        statusCell.innerHTML = '<span style="color: ' + Cell.ScytheVisionColors.complete3 + ';">Completed</span>';
+      }
+
+      $(statusCell).effect('highlight', {color: '#777'}, function () {
+        statusCell.style.backgroundColor = 'transparent';
+      });
+    });
+  };
+
+  this.updateEntryInDialowWindow = function (cellId) {
+    let targetUrl = '/1.0/cell/' + cellId + '/tasks/complete/player';
+    let row = K.gid('sc-history-cell-' + cellId);
+    let counterCell = row.getElementsByClassName('sc-history-count')[0];
+    counterCell.style.backgroundColor = '#333';
+
+    $.getJSON(targetUrl, function (JSONData) {
+      let uid = account.account.uid;
+
+      if (!JSONData) {
+        return;
+      }
+
+      let history = _this.getHistory();
+      let count = 0;
+      
+      if (JSONData.scythe && JSONData.scythe[uid]) {
+        count += JSONData.scythe[uid].length;
+      }
+      if (JSONData.admin && JSONData.admin[uid]) {
+        count += JSONData.admin[uid].length;
+      }
+      history[cellId].count = count;
+      _this.setHistory(history);
+      
+      row.dataset.count = count;
+      $(counterCell).effect('highlight', {color: '#777'}, function () {
+        counterCell.style.backgroundColor = 'transparent';
+      });
+
+      counterCell.innerHTML = count;
+
+      counterCell.classList.remove('SCHistory-50', 'SCHistory-100');
+      if (count >= 100) {
+        counterCell.classList.add('SCHistory-100');
+      }
+      else if (count >= 50) {
+        counterCell.classList.add('SCHistory-50');
+      }
+    });
   };
 
   this.updateDialogWindow = function () {
@@ -161,17 +241,14 @@ function SCHistory() {
       cellId,
       html = '',
       el, threshold,
-      lsHistory = K.ls.get('sc-history'),
+      history = this.getHistory(),
       status,
       completed3Color = Cell.ScytheVisionColors.complete3;
 
-    if (lsHistory && lsHistory !== '{}') {
-      lsHistory = JSON.parse(lsHistory);
-
+    if (Object.keys(history).length) {
       html += `
       <hr>
         <div>
-          <div id="scHistorySearchForCompleted" class="minimalButton selected sc-history-top-menu">Search for completed cells</div>
           <div id="scHistoryRemoveCompleted" class="minimalButton selected sc-history-top-menu">Remove completed cells</div>
           <div id="sc-history-top-menu-input-wrapper">Remove cells with SC# less than <input id="scHistoryRemoveBelowTresholdInput" type="number"><div id="scHistoryRemoveBelowTresholdButton" class="minimalButton selected sc-history-top-menu">Go</div></div>
         </div>
@@ -206,14 +283,14 @@ function SCHistory() {
 
       html += '<tbody>';
 
-      for (cellId in lsHistory) {
-        if (lsHistory.hasOwnProperty(cellId)) {
-          el = lsHistory[cellId];
-          if (el.count > 100) {
-            threshold = ' class="SCHistory-100"';
+      for (cellId in history) {
+        if (history.hasOwnProperty(cellId)) {
+          el = history[cellId];
+          if (el.count >= 100) {
+            threshold = ' SCHistory-100';
           }
-          else if (el.count > 50) {
-            threshold = ' class="SCHistory-50"';
+          else if (el.count >= 50) {
+            threshold = ' SCHistory-50';
           }
           else {
             threshold = '';
@@ -222,19 +299,20 @@ function SCHistory() {
           status = el.status || '--';
 
           html += `<tr
+          id="sc-history-cell-` + cellId + `"
           data-count="` + el.count + `"
           data-cell-id="` + cellId + `"
           data-timestamp="` + el.ts + `"
           data-dataset-id="` + el.datasetId + `"
           data-status="` + status + `"
           >
-            <td` + threshold + `>` + el.count + `</td>
+            <td class="sc-history-count` + threshold + `">` + el.count + `</td>
             <td class="sc-history-cell-name">` + el.name + `</td>
             <td class="sc-history-cell-id">` + cellId + `</td>
             <td>` + (new Date(el.ts)).toLocaleString() + `</td>
             <td><button class="sc-history-check-button minimalButton">Check</button></td>
             <td class="sc-history-results"></td>
-            <td>` + (status === 'Completed' ? '<span style="color: ' + completed3Color + ';">Completed</span>' : status) + `</td>
+            <td class="sc-history-complete-status">` + (status === 'Completed' ? '<span style="color: ' + completed3Color + ';">Completed</span>' : status) + `</td>
             <td><button class="sc-history-remove-button minimalButton">Remove</button></td>
           </tr>`;
         }
@@ -242,10 +320,19 @@ function SCHistory() {
       html += '</tbody></table>';
     }
     else {
-      html = 'no cubes SCed for last 7 days or since installing the script';
+      html = 'no cubes SCed for last 30 days or since installing the script';
     }
 
     K.gid('ewsSCHistoryWrapper').innerHTML = html;
+    
+    for (cellId in history) {
+      if (history.hasOwnProperty(cellId)) {
+        if (history[cellId].status !== 'Completed') {
+          this.updateCompleteStatus(cellId);
+          this.updateEntryInDialowWindow(cellId);
+        }
+      }
+    }
     
     $('#scHistoryRemoveBelowTresholdInput').on('keypress keydown keyup', function (evt) {
       evt.stopPropagation();
@@ -285,24 +372,21 @@ function SCHistory() {
   `);
   
   
-  let removeHelper = function (lParam, rParam) {
+  this.removeHelper = function (lParam, rParam) {
     let type = $('#ews-sc-history-dataset-selection .selected').data('type');
     let baseCellData = K.gid('ewsSCHistoryWrapper').dataset;
-    let data = K.ls.get('sc-history');
-    if (!data || data === '{}') {
-      return;
-    }
+    let history = this.getHistory();
 
-    data = JSON.parse(data);
-    for (let cellId in data) {
-      if (data.hasOwnProperty(cellId)) {
-        if (data[cellId][lParam] < baseCellData[rParam] && (data[cellId].datasetId == type || type === 'both')) {
-          delete data[cellId];
+    for (let cellId in history) {
+      if (history.hasOwnProperty(cellId)) {
+        if (history[cellId][lParam] < baseCellData[rParam] && (history[cellId].datasetId == type || type === 'both')) {
+          delete history[cellId];
         }
       }
     }
 
-    K.ls.set('sc-history', JSON.stringify(data));
+    this.setHistory(history);
+
     _this.updateDialogWindow();
     // to switch back to the tab selected before updating the dialog window
     $('#ews-sc-history-dataset-selection').find('.ewsNavButton').each(function () {
@@ -336,22 +420,21 @@ function SCHistory() {
    
   if (!K.ls.get('sc-history-update-2018-01-30')) {
     K.ls.set('sc-history-update-2018-01-30', true);
-    let scHistory = K.ls.get('sc-history');
-    if (scHistory) {
-      scHistory = JSON.parse(scHistory);
-      for (let cellId in scHistory) {
+    let history = this.getHistory();
+
+      for (let cellId in history) {
         /*jshint loopfunc: true */
-        if (scHistory.hasOwnProperty(cellId)) {
+        if (history.hasOwnProperty(cellId)) {
           $.getJSON('/1.0/cell/' + cellId, function (data) {
             if (data) {
-              let his = JSON.parse(K.ls.get('sc-history'));
+              let his = _this.getHistory();
               his[cellId].name = data.name;
-              K.ls.set('sc-history', JSON.stringify(his));
+              _this.setHistory(his);
             }
           });
         }
       }
-    }
+    // }
   }
 
   
@@ -360,21 +443,8 @@ function SCHistory() {
       // someone else SCed a cube; no need to update our votes
       return;
     }
-
-    let _data = data;
-    let host = window.location.hostname;
-    let targetUrl = '/1.0/cell/' + data.cell + '/tasks/complete/player';
-    let currentCell = tomni.getCurrentCell();
-
-    $.getJSON(targetUrl, function (JSONData) {
-      let uid = account.account.uid;
-
-      if (!JSONData) {
-        return;
-      }
-
-      _this.updateCount(JSONData.scythe[uid].length, _data.cell, currentCell.info.name, Date.now(), currentCell.info.dataset_id);
-    });
+    
+    _this.addOrUpdateEntry();
   });
   
   doc.on('contextmenu', '.sc-history-remove-button', function (evt) {
@@ -407,8 +477,8 @@ function SCHistory() {
     }
   });
 
-  doc.on('click', '#sc-history-remove-older', removeHelper.bind(null, 'ts', 'timestamp'));
-  doc.on('click', '#sc-history-remove-fewer', removeHelper.bind(null, 'count', 'count'));
+  doc.on('click', '#sc-history-remove-older', _this.removeHelper.bind(null, 'ts', 'timestamp'));
+  doc.on('click', '#sc-history-remove-fewer', _this.removeHelper.bind(null, 'count', 'count'));
 
 
   let wrapper = $('#ewsSCHistoryWrapper');
@@ -482,63 +552,22 @@ function SCHistory() {
     _this.filter(period, type);
   });
   
-  wrapper.on('click', '#scHistorySearchForCompleted', function () {
-    let type = $('#ews-sc-history-dataset-selection .selected').data('type');
-    let cells = K.ls.get('sc-history');
-    let cell;
-    
-    if (! cells || cells === '{}') {
-      return;
-    }
-    
-    cells = JSON.parse(cells);
-    for (let cellId in cells) {
-      if (cells.hasOwnProperty(cellId)) {
-        cell = cells[cellId];
-        if ((!cell.status || cell.status !== 'Completed') && (cell.datasetId == type || type === 'both')) {
-          $.getJSON('/1.0/cell/' + cellId, function (data) {
-            if (data && data.completed !== null) {
-              cell.status = 'Completed';
-              // read and write to localStorage in each iteration, because otherwise
-              // only the last would be saved
-              let tempList = JSON.parse(K.ls.get('sc-history'));
-              tempList[cellId].status = 'Completed';
-              K.ls.set('sc-history', JSON.stringify(tempList));
-              _this.updateDialogWindow();
-              $('#ews-sc-history-dataset-selection').find('.ewsNavButton').each(function () {
-                if (this.dataset.type == type) {
-                  this.click();
-                  return false;
-                }
-              });
-            }
-          });
-        }
-      }
-    }
-  });
-  
   wrapper.on('click', '#scHistoryRemoveCompleted', function () {
     let type = $('#ews-sc-history-dataset-selection .selected').data('type');
-    let cells = K.ls.get('sc-history');
+    let history = _this.getHistory();
     let cell;
     
-    if (!cells || cells === '{}') {
-      return;
-    }
-    
-    cells = JSON.parse(cells);
-    
-    for (let cellId in cells) {
-      if (cells.hasOwnProperty(cellId)) {
-        cell = cells[cellId];
+    for (let cellId in history) {
+      if (history.hasOwnProperty(cellId)) {
+        cell = history[cellId];
         if ((cell.status && cell.status === 'Completed') && (cell.datasetId == type || type === 'both')) {
-          delete cells[cellId];
+          delete history[cellId];
         }
       }
     }
-    
-    K.ls.set('sc-history', JSON.stringify(cells));
+
+    _this.setHistory(history);
+
     _this.updateDialogWindow();
     $('#ews-sc-history-dataset-selection').find('.ewsNavButton').each(function () {
       if (this.dataset.type == type) {
@@ -554,24 +583,19 @@ function SCHistory() {
     let cell;
     
     if (val && val > 0) {
-      let cells = K.ls.get('sc-history');
+      let history = _this.getHistory();
       
-      if (!cells || cells === '{}') {
-        return;
-      }
-      
-      cells = JSON.parse(cells);
-      
-      for (let cellId in cells) {
-        if (cells.hasOwnProperty(cellId)) {
-          cell = cells[cellId];
+      for (let cellId in history) {
+        if (history.hasOwnProperty(cellId)) {
+          cell = history[cellId];
           if ((cell.count < val) && (cell.datasetId == type || type === 'both')) {
-            delete cells[cellId];
+            delete history[cellId];
           }
         }
       }
-      
-      K.ls.set('sc-history', JSON.stringify(cells));
+
+      _this.setHistory(history);
+
       _this.updateDialogWindow();
       $('#ews-sc-history-dataset-selection').find('.ewsNavButton').each(function () {
         if (this.dataset.type == type) {
