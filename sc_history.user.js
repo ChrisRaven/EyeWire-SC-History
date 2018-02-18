@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.1.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -157,8 +157,8 @@ function SCHistory() {
     let history = this.getHistory();
     let cell = tomni.getCurrentCell();
     
-    if (!history[cell.info.cell]) {
-      history[cell.info.cell] = {
+    if (!history[cell.info.id]) {
+      history[cell.info.id] = {
         count: 0,
         ts: Date.now(),
         name: cell.info.name,
@@ -166,8 +166,8 @@ function SCHistory() {
       };
     }
     else {
-      history[cell.info.cell].ts = Date.now();
-      history[cell.info.cell].name = cell.info.name; // in case, the name of the cell was changed (e.g. by splitting)
+      history[cell.info.id].ts = Date.now();
+      history[cell.info.id].name = cell.info.name; // in case, the name of the cell was changed (e.g. by splitting)
     }
 
     this.setHistory(history);    
