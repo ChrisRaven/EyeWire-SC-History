@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.1.1
+// @version      1.1.2
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -396,16 +396,19 @@ function SCHistory() {
       }
     });
   };
-  
-  let intv2 = setInterval(function () {
-    if (!K.gid('profileButton')) {
-      return;
-    }
 
-    clearInterval(intv2);
-    K.gid('profileButton').title = 'Right click to display SC History';
-  }, 100);
   
+  K.injectJS(`
+  $(window)
+    .on('account-info-ready', function () {
+      $(document).trigger('account-info-ready-triggered.sc_history');
+    });
+  `);
+  
+  $(document).on('account-info-ready-triggered.sc_history', function () {
+    K.gid('profileButton').title = 'Right click to display SC History';
+  });
+
 
   let doc = $(document);
   
