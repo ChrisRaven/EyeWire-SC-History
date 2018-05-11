@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.1.2
+// @version      1.1.3
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -633,7 +633,7 @@ $.widget('ui.dialog', $.extend({}, $.ui.dialog.prototype, {
 }));
 
 
-if (account.roles.scythe || account.roles.mystic || account.roles.admin) {
+if (account.can('scythe mystic admin')) {
   var history = new SCHistory();
   history.removeOldEntries();
 }
