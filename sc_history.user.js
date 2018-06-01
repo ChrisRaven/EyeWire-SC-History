@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.1.3
+// @version      1.1.3.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -406,13 +406,13 @@ function SCHistory() {
   `);
   
   $(document).on('account-info-ready-triggered.sc_history', function () {
-    K.gid('profileButton').title = 'Right click to display SC History';
+    K.gid('acc').title = 'Right click to display SC History';
   });
 
 
   let doc = $(document);
   
-  doc.on('contextmenu', '#profileButton', function (e) {
+  doc.on('contextmenu', '#acc', function (e) {
     e.preventDefault();
     e.stopPropagation();
     _this.updateDialogWindow();
