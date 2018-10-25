@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.1.3.1
+// @version      1.2
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -275,8 +275,7 @@ function SCHistory() {
           <th>Cell Name</th>
           <th>Cell ID</th>
           <th>Timestamp</th>
-          <th>sc-info</th>
-          <th>Cubes you can SC</th>
+          <th>To SC</th>
           <th>Status</th>
           <th>&nbsp;</th>
         </tr></thead>`;
@@ -310,7 +309,6 @@ function SCHistory() {
             <td class="sc-history-cell-name">` + el.name + `</td>
             <td class="sc-history-cell-id">` + cellId + `</td>
             <td>` + (new Date(el.ts)).toLocaleString() + `</td>
-            <td><button class="sc-history-check-button minimalButton">Check</button></td>
             <td class="sc-history-results"></td>
             <td class="sc-history-complete-status">` + (status === 'Completed' ? '<span style="color: ' + completed3Color + ';">Completed</span>' : status) + `</td>
             <td><button class="sc-history-remove-button minimalButton">Remove</button></td>
@@ -330,6 +328,7 @@ function SCHistory() {
         if (history[cellId].status !== 'Completed') {
           this.updateCompleteStatus(cellId);
           this.updateEntryInDialowWindow(cellId);
+          this.updateToSCCounter(cellId);
         }
       }
     }
@@ -490,11 +489,7 @@ function SCHistory() {
     tomni.setCell({id: this.nextElementSibling .innerHTML});
   });
   
-  wrapper.on('click', '.sc-history-check-button', function () {
-    var
-      _this = this,
-      cellId = this.parentNode.parentNode.dataset.cellId;
-
+  this.updateToSCCounter = function (cellId) {
     $.when(
       $.getJSON("/1.0/cell/" + cellId + "/tasks"),
       $.getJSON("/1.0/cell/" + cellId + "/heatmap/scythe"),
@@ -505,7 +500,7 @@ function SCHistory() {
 
       tasks = tasks[0];
       complete = scythe[0].complete || [];
-      completed = completed[0];
+      completed = completed[0] || [];
 
       /* status =
         active: 0
@@ -522,12 +517,17 @@ function SCHistory() {
       potential = potential.filter(x => complete.indexOf(x) === -1);
 
       uid = account.account.uid;
-      completedByMe = completed.scythe[uid].concat(completed.admin[uid]);
+      if (completed.scythe[uid]) {
+        completedByMe = completed.scythe[uid].concat(completed.admin[uid]);
+      }
+      else {
+        completedByMe = completed.admin[uid] || [];
+      }
       potential = potential.filter(x => completedByMe.indexOf(x) === -1);
 
-      _this.parentNode.nextElementSibling.innerHTML = potential.length;
+      K.qS('#sc-history-cell-' + cellId + ' .sc-history-results').innerHTML = potential.length;
     });
-  });
+  }
   
   wrapper.on('click', '.sc-history-remove-button', function () {
     var id;
@@ -615,7 +615,7 @@ if (LOCAL) {
   K.addCSSFile('http://127.0.0.1:8887/styles.css');
 }
 else {
-  K.addCSSFile('https://chrisraven.github.io/EyeWire-SC-History/styles.css');
+  K.addCSSFile('https://chrisraven.github.io/EyeWire-SC-History/styles.css?v=1');
 }
 
 
