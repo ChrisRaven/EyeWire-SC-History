@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.2.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -615,7 +615,7 @@ if (LOCAL) {
   K.addCSSFile('http://127.0.0.1:8887/styles.css');
 }
 else {
-  K.addCSSFile('https://chrisraven.github.io/EyeWire-SC-History/styles.css?v=1');
+  K.addCSSFile('https://chrisraven.github.io/EyeWire-SC-History/styles.css?v=2');
 }
 
 
