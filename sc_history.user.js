@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.2.1
+// @version      1.3
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -403,13 +403,13 @@ function SCHistory() {
       $(document).trigger('account-info-ready-triggered.sc_history');
     });
   `);
-  
-  $(document).on('account-info-ready-triggered.sc_history', function () {
-    K.gid('acc').title = 'Right click to display SC History';
-  });
-
 
   let doc = $(document);
+
+
+  doc.on('account-info-ready-triggered.sc_history', function () {
+    K.gid('acc').title = 'Right click to display SC History';
+  });
   
   doc.on('contextmenu', '#acc', function (e) {
     e.preventDefault();
@@ -608,6 +608,44 @@ function SCHistory() {
       });
     }
   });
+
+  K.gid('changeCell').addEventListener('click', function () {
+    let tries = 300;
+    let intv = setInterval(function () {
+      if (!tries--) { // if after 300 * 50ms = 15s there's no cells' list, stop checking for it
+        clearInterval(intv);
+        return;
+      }
+
+      if (!K.qS('.cells-container')) {
+        return;
+      }
+
+      let scHistory = K.ls.get('sc-history');
+      if (scHistory) {
+        scHistory = JSON.parse(scHistory);
+        let names = Object.keys(scHistory).map(index => scHistory[index].name);
+
+        let cells = K.qSa('.cells-container tr');
+        cells.forEach((row) => {
+          let rowName = row.querySelector('.name');
+          if (rowName && names.includes(rowName.innerHTML)) {
+            if (row.classList.contains('current')) {
+              rowName.style.color = 'green';
+            }
+            else {
+              rowName.style.color = 'greenyellow';
+            }
+          }
+        });
+      }
+
+
+      clearInterval(intv);
+    }, 50);
+  });
+
+
 }
 
 
