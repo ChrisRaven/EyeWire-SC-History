@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.3.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -631,7 +631,7 @@ function SCHistory() {
           let rowName = row.querySelector('.name');
           if (rowName && names.includes(rowName.innerHTML)) {
             if (row.classList.contains('current')) {
-              rowName.style.color = 'green';
+              rowName.style.color = '#0fb30f';
             }
             else {
               rowName.style.color = 'greenyellow';
