@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -32,6 +32,7 @@
   };
 
   let schistory;
+  let settings;
 
   let intv = setInterval(function () {
     if (typeof account === 'undefined' || !account.account.uid) {
@@ -41,9 +42,111 @@
         
     if (account.can('scythe mystic admin')) {
       schistory = new SCHistory();
+
+      settings = new Settings();
+
+      let checked = K.ls.get('settings-color-sced-cells') === 'true';
+      settings.addCategory();
+      settings.addOption({
+        name: 'Color SCed cells',
+        id: 'settings-color-sced-cells',
+        state: checked,
+        defaultState: true
+      });
     }
 
   }, 100);
+
+  function Settings() {
+    let target;
+    
+    this.setTarget = function (selector) {
+      target = selector;
+    };
+    
+    this.getTarget = function () {
+      return target;
+    };
+    
+    this.addCategory = function (id = 'ews-sc-history-settings-group', name = 'SC History') {
+      if (!K.gid(id)) {
+        $('#settingsMenu').append(`
+          <div id="${id}" class="settings-group ews-settings-group invisible">
+            <h1>${name}</h1>
+          </div>
+        `);
+      }
+      
+      this.setTarget($('#' + id));
+    };
+
+    this.addOption = function (options) {
+      let settings = {
+        name: '',
+        id: '',
+        defaultState: false,
+        indented: false
+      }
+
+      $.extend(settings, options);
+      let storedState = K.ls.get(settings.id);
+      let state;
+
+      if (storedState === null) {
+        K.ls.set(settings.id, settings.defaultState);
+        state = settings.defaultState;
+      }
+      else {
+        state = storedState.toLowerCase() === 'true';
+      }
+
+      target.append(`
+        <div class="setting" id="${settings.id}-wrapper">
+          <span>${settings.name}</span>
+          <div class="checkbox ${state ? 'on' : 'off'}">
+            <div class="checkbox-handle"></div>
+            <input type="checkbox" id="${settings.id}" style="display: none;" ${state ? ' checked' : ''}>
+          </div>
+        </div>
+      `);
+      
+      if (settings.indented) {
+        K.gid(settings.id).parentNode.parentNode.style.marginLeft = '30px';
+      }
+      
+      $(`#${settings.id}-wrapper`).click(function (evt) {
+        evt.stopPropagation();
+
+        let $elem = $(this).find('input');
+        let elem = $elem[0];
+        let newState = !elem.checked;
+
+        K.ls.set(settings.id, newState);
+        elem.checked = newState;
+
+        $elem.add($elem.closest('.checkbox')).removeClass(newState ? 'off' : 'on').addClass(newState ? 'on' : 'off');
+        $(document).trigger('ews-setting-changed', {setting: settings.id, state: newState});
+      });
+      
+      $(document).trigger('ews-setting-changed', {setting: settings.id, state: state});
+    };
+    
+    this.getValue = function (optionId) {
+      let val = K.ls.get(optionId);
+      
+      if (val === null) {
+        return undefined;
+      }
+      if (val.toLowerCase() === 'true') {
+        return true;
+      }
+      if (val.toLowerCase() === 'false') {
+        return false;
+      }
+
+      return val;
+    }
+  }
 
 
   function SCHistory() {
@@ -94,19 +197,21 @@
           return;
         }
 
-        let vanillaName = name[0];
-        let color;
-        let myCompletes = completedByMe.length;
+        if (settings.getValue('settings-color-sced-cells')) {
+          let vanillaName = name[0];
+          let color;
+          let myCompletes = completedByMe.length;
 
-        if (myCompletes >= 50) {
-          color = vanillaName.parentNode.classList.contains('current') ? '#929a0f' : 'yellow';
-        }
-        
-        if (myCompletes >= 100) {
-          color = vanillaName.parentNode.classList.contains('current') ? '#0fb30f' : '#00ff00';
-        }
+          if (myCompletes >= 50) {
+            color = vanillaName.parentNode.classList.contains('current') ? '#929a0f' : 'yellow';
+          }
+          
+          if (myCompletes >= 100) {
+            color = vanillaName.parentNode.classList.contains('current') ? '#0fb30f' : '#00ff00';
+          }
 
-        vanillaName.style.color = color;
+          vanillaName.style.color = color;
+        }
 
         name.parent().append('<td>' + completedByMe.length + '</td><td>' + potential.length + '</td>');
       });
