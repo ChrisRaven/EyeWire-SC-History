@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SC History
 // @namespace    http://tampermonkey.net/
-// @version      2.1
+// @version      2.1.1
 // @description  Shows EW Statistics and adds some other functionality
 // @author       Krzysztof Kruk
 // @match        https://*.eyewire.org/*
@@ -53,6 +53,12 @@
         state: checked,
         defaultState: true
       });
+
+      settings.addOption({
+        name: 'Color cells with available cubes',
+        id: 'settings-color-potential',
+        defaultState: true
+      })
     }
 
   }, 100);
@@ -213,7 +219,12 @@
           vanillaName.style.color = color;
         }
 
-        name.parent().append('<td>' + completedByMe.length + '</td><td>' + potential.length + '</td>');
+        let cl = '';
+        if (settings.getValue('settings-color-potential') && potential.length) {
+          cl = 'style="color: coral;"';
+        }
+
+        name.parent().append('<td>' + completedByMe.length + '</td><td ' + cl + '>' + potential.length + '</td>');
       });
     };
     
